@@ -1,0 +1,92 @@
+---
+// This file is a "layout": a reusable page shell. Every page (`index.astro`,
+// `about.astro`, each artwork page) imports this and passes it a title +
+// description; this component is responsible for the stuff that should be
+// identical everywhere — the <head> tags, the nav bar, the footer.
+import '../styles/global.css';
+
+interface Props {
+  title: string;
+  description: string;
+  image?: string;
+}
+
+const { title, description, image } = Astro.props;
+
+// Astro.site comes from the `site` value we set in astro.config.mjs.
+// Astro.url is the current page's path. Combined, this gives us a full,
+// absolute URL — required for OG tags and canonical links (search engines
+// and social platforms won't reliably resolve relative URLs).
+const canonicalURL = new URL(Astro.url.pathname, Astro.site);
+const ogImageURL = image ? new URL(image, Astro.site) : undefined;
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="canonical" href={canonicalURL} />
+
+    <title>{title}</title>
+    <meta name="description" content={description} />
+
+    <!-- Open Graph: controls the preview card when this page is shared
+         on Slack, iMessage, Twitter/X, etc. -->
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonicalURL} />
+    {ogImageURL && <meta property="og:image" content={ogImageURL} />}
+
+    <meta name="twitter:card" content="summary_large_image" />
+  </head>
+  <body>
+    <header class="container site-header">
+      <a class="site-title" href="/">Artist Name</a>
+      <nav>
+        <a href="/">Gallery</a>
+        <a href="/about">About</a>
+      </nav>
+    </header>
+
+    <main>
+      <slot />
+    </main>
+
+    <footer class="container site-footer">
+      <p>&copy; {new Date().getFullYear()} Artist Name. All rights reserved.</p>
+    </footer>
+
+    <style>
+      .site-header {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        padding-block: var(--space-4);
+        border-bottom: 1px solid var(--color-border);
+      }
+      .site-title {
+        font-size: 1.25rem;
+        text-decoration: none;
+        letter-spacing: 0.02em;
+      }
+      .site-header nav a {
+        margin-inline-start: var(--space-4);
+        text-decoration: none;
+        color: var(--color-muted);
+      }
+      .site-header nav a:hover {
+        color: var(--color-text);
+      }
+      .site-footer {
+        margin-top: var(--space-6);
+        padding-block: var(--space-4);
+        border-top: 1px solid var(--color-border);
+        color: var(--color-muted);
+        font-size: 0.875rem;
+      }
+    </style>
+  </body>
+</html>

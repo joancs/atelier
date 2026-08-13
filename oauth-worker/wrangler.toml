@@ -1,0 +1,12 @@
+name = "atelier-oauth"
+main = "src/index.js"
+compatibility_date = "2026-01-01"
+
+[vars]
+# The Client ID is not a secret — it's fine in version control.
+# Replace after creating the GitHub OAuth App (see oauth-worker/README.md).
+GITHUB_CLIENT_ID = "REPLACE-ME"
+
+# GITHUB_CLIENT_SECRET is deliberately NOT here. Secrets never go in a file
+# that lands in git. Set it once with:
+#   npx wrangler secret put GITHUB_CLIENT_SECRET
