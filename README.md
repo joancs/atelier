@@ -91,7 +91,7 @@ repository** → pick this repo, then set:
 | --- | --- |
 | Build command | `npm run build` |
 | Deploy command | `npx wrangler deploy` |
-| Non-production branch deploy command | `npx wrangler versions upload` |
+| Preview command | `npx wrangler preview` |
 | Environment variable | `NODE_VERSION` = `22` |
 
 Leave **Cloudflare Access** off (it would put a login in front of the public
