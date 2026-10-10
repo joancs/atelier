@@ -1,2 +1,134 @@
 # atelier
+
 The online portfolio of an artist.
+
+A static site: every page is pre-built into plain HTML at build time, so
+visitors download files rather than waiting on a server to assemble a page.
+Images carry explicit dimensions and no web fonts are loaded, which is what
+keeps the layout from shifting around as the page loads.
+
+## Stack
+
+| Piece | What it does |
+| --- | --- |
+| [Astro](https://astro.build) | Turns content files into static HTML; optimizes images |
+| [Decap CMS](https://decapcms.org) | Browser-based editor at `/admin` so artwork can be added without touching code |
+| Cloudflare Pages | Hosts the site; rebuilds and deploys on every push to `main` |
+| Cloudflare Workers | Runs the small OAuth helper that logs the editor into GitHub |
+| GitHub Actions | Verifies the site builds and type-checks on every pull request |
+
+## Running it locally
+
+```bash
+npm install       # once, after cloning
+npm run dev       # http://localhost:4321
+```
+
+| Command | Action |
+| --- | --- |
+| `npm run dev` | Local dev server with live reload |
+| `npm run check` | Type-check + validate content against the schema |
+| `npm run build` | Build the production site into `dist/` |
+| `npm run preview` | Serve the built site locally, to check it before deploying |
+
+## Project layout
+
+```text
+src/
+├── content/artwork/     one Markdown file per piece (the data)
+├── assets/artwork/      the image files themselves
+├── content.config.ts    the schema — what fields a piece must have
+├── layouts/             shared page shell (<head> tags, nav, footer)
+├── pages/               each file here becomes a URL
+│   ├── index.astro          /            the gallery
+│   ├── about.astro          /about
+│   └── artwork/[slug].astro /artwork/…   one page per piece, generated
+└── styles/global.css    colors, spacing, typography
+public/
+├── admin/               the Decap CMS editor (served as-is)
+└── robots.txt
+oauth-worker/            the GitHub login helper (deployed separately)
+```
+
+## Adding a new piece
+
+**Option A — through the editor (intended for the artist):** go to
+`https://<site>/admin`, log in with GitHub, click *New Piece*, fill in the form,
+publish. That commits a Markdown file plus the image to this repo, which
+triggers a rebuild. The new page is live in a minute or two.
+
+**Option B — by hand:** drop the image in `src/assets/artwork/`, add a Markdown
+file in `src/content/artwork/`:
+
+```markdown
+---
+title: 'Morning Field'
+year: 2026
+medium: 'Oil on canvas'
+dimensions: '90 x 120 cm'
+image: '../../assets/artwork/morning-field.jpg'
+imageAlt: 'A wheat field under low grey cloud'
+description: 'Optional longer text shown on the artwork page.'
+featured: false
+---
+```
+
+Both routes produce identical files. The schema in `src/content.config.ts` is
+enforced at build time — a missing or misspelled field fails the build rather
+than silently publishing a broken page.
+
+---
+
+## One-time setup
+
+These steps need accounts and dashboards, so they have to be done by hand.
+
+### 1. Deploy to Cloudflare Pages
+
+Cloudflare dashboard → **Workers & Pages** → **Create** → **Pages** → connect
+the GitHub repo, then set:
+
+| Setting | Value |
+| --- | --- |
+| Build command | `npm run build` |
+| Build output directory | `dist` |
+| Environment variable | `NODE_VERSION` = `22` |
+
+From then on, every push to `main` deploys automatically, and every pull request
+gets its own preview URL.
+
+### 2. Set the real domain
+
+Two files contain the placeholder `https://example.com` and must be updated once
+a domain is chosen, or the sitemap and social preview links will point at the
+wrong place:
+
+- `astro.config.mjs` → `site`
+- `public/robots.txt` → the `Sitemap:` line
+
+Attach the domain in Cloudflare Pages → **Custom domains**.
+
+### 3. Enable the CMS login
+
+See [`oauth-worker/README.md`](oauth-worker/README.md) — create a GitHub OAuth
+App, deploy the Worker, then set `backend.base_url` in
+`public/admin/config.yml` to the deployed Worker URL.
+
+### 4. Turn on monitoring
+
+- **Traffic + Core Web Vitals:** Cloudflare dashboard → **Web Analytics** →
+  enable for the site. For a site hosted on Cloudflare Pages this needs no code
+  change. It reports Cumulative Layout Shift (CLS) — the metric for "did things
+  move around while loading" — plus load times, per page.
+- **Uptime:** add the domain to a free checker such as
+  [UptimeRobot](https://uptimerobot.com) to get an email if the site goes down.
+- **Build failures:** GitHub notifies you when a CI run or deploy fails.
+
+### 5. Replace the placeholder content
+
+The site ships with one placeholder piece and stub text so the gallery is
+demonstrably working end to end. Replace:
+
+- `src/content/artwork/placeholder-study.md` and its image
+- "Artist Name" in `src/layouts/BaseLayout.astro` and the page titles
+- the artist statement in `src/pages/index.astro` and bio in `src/pages/about.astro`

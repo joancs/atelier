@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="1500" viewBox="0 0 1200 1500">
+  <rect width="1200" height="1500" fill="#e8e1d3"/>
+  <rect x="60" y="60" width="1080" height="1380" fill="none" stroke="#3a352c" stroke-width="4"/>
+  <text x="600" y="770" text-anchor="middle" font-family="Georgia, serif" font-size="48" fill="#3a352c">
+    Replace with real artwork
+  </text>
+  <text x="600" y="830" text-anchor="middle" font-family="Georgia, serif" font-size="28" fill="#7a7466">
+    via /admin
+  </text>
+</svg>

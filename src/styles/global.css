@@ -1,0 +1,54 @@
+/* Minimal reset — just the parts that actually bite you, not a full library. */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  /* No web fonts loaded here on purpose: system fonts render instantly,
+     with zero risk of the "flash of unstyled text" that reflows a page
+     after it's already loaded (the layout-shift problem you flagged). */
+  font-family: Georgia, 'Times New Roman', serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+body {
+  margin: 0;
+  background: var(--color-bg);
+  color: var(--color-text);
+  line-height: 1.5;
+}
+
+img {
+  max-width: 100%;
+  height: auto;
+  display: block;
+}
+
+a {
+  color: inherit;
+}
+
+:root {
+  /* A quiet, gallery-like palette: warm off-white, near-black text, one
+     restrained accent. Easy to swap once the artist has a preference. */
+  --color-bg: #f7f4ee;
+  --color-text: #24211c;
+  --color-muted: #6b6459;
+  --color-border: #ded6c4;
+  --color-accent: #6b5a3e;
+
+  --content-width: 72rem;
+  --space-2: 0.5rem;
+  --space-3: 1rem;
+  --space-4: 1.5rem;
+  --space-5: 2.5rem;
+  --space-6: 4rem;
+}
+
+.container {
+  max-width: var(--content-width);
+  margin-inline: auto;
+  padding-inline: var(--space-4);
+}

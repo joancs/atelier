@@ -1,0 +1,87 @@
+---
+// getCollection reads every file in src/content/artwork/ that matches our
+// schema and gives us back a typed array — this is the "ask for all the
+// artworks" step mentioned earlier.
+import { getCollection } from 'astro:content';
+// Astro's <Image> component (not a plain <img>) does the optimization work:
+// resizes, converts to modern formats (webp/avif), and — the important part
+// for us — writes width/height attributes into the HTML so the browser
+// reserves the correct space before the image file has even downloaded.
+// That's what prevents the "page jumps as it loads" problem.
+import { Image } from 'astro:assets';
+import BaseLayout from '../layouts/BaseLayout.astro';
+
+// The first row of the gallery is visible immediately, so those images load
+// eagerly — lazy-loading something the visitor is already looking at just
+// delays it. Everything below the fold stays lazy.
+const EAGER_IMAGE_COUNT = 3;
+
+// Featured pieces come first, then newest-first within each group.
+const artworks = (await getCollection('artwork')).sort((a, b) => {
+  if (a.data.featured !== b.data.featured) return a.data.featured ? -1 : 1;
+  return b.data.year - a.data.year;
+});
+---
+
+<BaseLayout
+  title="Artist Name — Paintings"
+  description="A portfolio of paintings by Artist Name."
+>
+  <section class="container intro">
+    <h1>Artist Name</h1>
+    <p>A short artist statement goes here — one or two sentences about your practice.</p>
+  </section>
+
+  <section class="container gallery">
+    {
+      artworks.map((artwork, index) => (
+        <a class="card" href={`/artwork/${artwork.id}/`}>
+          <Image
+            src={artwork.data.image}
+            alt={artwork.data.imageAlt}
+            widths={[400, 800]}
+            sizes="(min-width: 640px) 33vw, 90vw"
+            loading={index < EAGER_IMAGE_COUNT ? 'eager' : 'lazy'}
+          />
+          <p class="card-title">
+            {artwork.data.title} <span class="card-year">({artwork.data.year})</span>
+          </p>
+        </a>
+      ))
+    }
+  </section>
+</BaseLayout>
+
+<style>
+  .intro {
+    padding-block: var(--space-5);
+  }
+  .intro h1 {
+    margin-block-end: var(--space-2);
+  }
+  .intro p {
+    color: var(--color-muted);
+    max-width: 40ch;
+  }
+
+  .gallery {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(16rem, 1fr));
+    gap: var(--space-4);
+    padding-block-end: var(--space-6);
+  }
+
+  .card {
+    text-decoration: none;
+    color: inherit;
+  }
+
+  .card-title {
+    margin-block-start: var(--space-2);
+    font-size: 0.9375rem;
+  }
+
+  .card-year {
+    color: var(--color-muted);
+  }
+</style>

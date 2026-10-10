@@ -1,0 +1,54 @@
+# Decap CMS configuration.
+# This file is the single source of truth for what the artist sees in the
+# editor. Every field below must stay in sync with the schema in
+# src/content.config.ts — if they drift, the CMS will happily save a file
+# that then fails the Astro build.
+
+backend:
+  name: github
+  repo: joancs/atelier
+  branch: main
+  # TODO: replace with the deployed Worker URL from oauth-worker/ once it's
+  # live (e.g. https://atelier-oauth.<your-subdomain>.workers.dev).
+  # This is the small service that performs the GitHub login handshake.
+  base_url: https://REPLACE-ME.workers.dev
+
+# Where uploaded images are committed in the repo (path from the repo root).
+media_folder: 'src/assets/artwork'
+# The literal path prefix written into each entry's frontmatter. It's relative
+# because entries live in src/content/artwork/, so "../../assets/artwork/x.jpg"
+# resolves to src/assets/artwork/x.jpg — which is what Astro's image()
+# validator expects.
+public_folder: '../../assets/artwork'
+
+collections:
+  - name: 'artwork'
+    label: 'Artwork'
+    label_singular: 'Piece'
+    folder: 'src/content/artwork'
+    create: true
+    slug: '{{slug}}'
+    extension: 'md'
+    format: 'frontmatter'
+    summary: '{{title}} ({{year}})'
+    sortable_fields: ['year', 'title']
+    fields:
+      - { label: 'Title', name: 'title', widget: 'string' }
+      - { label: 'Year', name: 'year', widget: 'number', value_type: 'int', min: 1900, max: 2100 }
+      - { label: 'Medium', name: 'medium', widget: 'string', hint: 'e.g. Oil on canvas' }
+      - { label: 'Dimensions', name: 'dimensions', widget: 'string', required: false, hint: 'e.g. 90 x 120 cm' }
+      - { label: 'Image', name: 'image', widget: 'image' }
+      - {
+          label: 'Image description',
+          name: 'imageAlt',
+          widget: 'string',
+          hint: 'Describe the image for visitors using a screen reader, and for search engines.',
+        }
+      - { label: 'Description', name: 'description', widget: 'text', required: false }
+      - {
+          label: 'Feature on gallery homepage',
+          name: 'featured',
+          widget: 'boolean',
+          default: false,
+          required: false,
+        }
