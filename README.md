@@ -13,8 +13,7 @@ keeps the layout from shifting around as the page loads.
 | --- | --- |
 | [Astro](https://astro.build) | Turns content files into static HTML; optimizes images |
 | [Decap CMS](https://decapcms.org) | Browser-based editor at `/admin` so artwork can be added without touching code |
-| Cloudflare Pages | Hosts the site; rebuilds and deploys on every push to `main` |
-| Cloudflare Workers | Runs the small OAuth helper that logs the editor into GitHub |
+| Cloudflare Workers | Hosts the site (configured in `wrangler.jsonc`), rebuilding and deploying on every push to `main`; also runs the small OAuth helper that logs the editor into GitHub |
 | GitHub Actions | Verifies the site builds and type-checks on every pull request |
 
 ## Running it locally
@@ -83,19 +82,24 @@ than silently publishing a broken page.
 
 These steps need accounts and dashboards, so they have to be done by hand.
 
-### 1. Deploy to Cloudflare Pages
+### 1. Deploy to Cloudflare Workers
 
-Cloudflare dashboard → **Workers & Pages** → **Create** → **Pages** → connect
-the GitHub repo, then set:
+Cloudflare dashboard → **Workers & Pages** → **Create** → **Import a
+repository** → pick this repo, then set:
 
 | Setting | Value |
 | --- | --- |
 | Build command | `npm run build` |
-| Build output directory | `dist` |
+| Deploy command | `npx wrangler deploy` |
+| Non-production branch deploy command | `npx wrangler versions upload` |
 | Environment variable | `NODE_VERSION` = `22` |
 
-From then on, every push to `main` deploys automatically, and every pull request
-gets its own preview URL.
+Leave **Cloudflare Access** off (it would put a login in front of the public
+site). Wrangler reads everything else — the Worker name and which folder to
+serve — from `wrangler.jsonc`.
+
+From then on, every push to `main` deploys automatically, and with preview
+builds enabled every other branch gets its own preview URL.
 
 ### 2. Set the real domain
 
@@ -106,7 +110,7 @@ wrong place:
 - `astro.config.mjs` → `site`
 - `public/robots.txt` → the `Sitemap:` line
 
-Attach the domain in Cloudflare Pages → **Custom domains**.
+Attach the domain in the Worker's **Settings** → **Domains & Routes**.
 
 ### 3. Enable the CMS login
 
@@ -117,9 +121,10 @@ App, deploy the Worker, then set `backend.base_url` in
 ### 4. Turn on monitoring
 
 - **Traffic + Core Web Vitals:** Cloudflare dashboard → **Web Analytics** →
-  enable for the site. For a site hosted on Cloudflare Pages this needs no code
-  change. It reports Cumulative Layout Shift (CLS) — the metric for "did things
-  move around while loading" — plus load times, per page.
+  enable for the site. Once the custom domain runs through Cloudflare this
+  can be switched on without a code change. It reports Cumulative Layout
+  Shift (CLS) — the metric for "did things move around while loading" — plus
+  load times, per page.
 - **Uptime:** add the domain to a free checker such as
   [UptimeRobot](https://uptimerobot.com) to get an email if the site goes down.
 - **Build failures:** GitHub notifies you when a CI run or deploy fails.

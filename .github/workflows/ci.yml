@@ -1,7 +1,7 @@
 # Continuous Integration.
 #
-# Cloudflare Pages already rebuilds and deploys the site on every push — that's
-# the "CD" half. This workflow is the "CI" half: it independently verifies the
+# Cloudflare Workers Builds already rebuilds and deploys the site on every
+# push — that's the "CD" half. This workflow is the "CI" half: it independently verifies the
 # site actually builds and type-checks, and it runs on pull requests, so a
 # mistake is caught *before* it reaches the live site rather than after.
 name: CI
