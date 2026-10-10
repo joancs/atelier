@@ -1,0 +1,17 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+---
+
+<BaseLayout title="Page not found — Artist Name" description="This page does not exist.">
+  <section class="container not-found">
+    <h1>Page not found</h1>
+    <p>This page doesn't exist — it may have moved. <a href="/">Back to the gallery</a>.</p>
+  </section>
+</BaseLayout>
+
+<style>
+  .not-found {
+    padding-block: var(--space-5) var(--space-6);
+    max-width: 60ch;
+  }
+</style>
