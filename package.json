@@ -10,7 +10,10 @@
     "check": "astro check",
     "build": "astro build",
     "preview": "astro preview",
-    "astro": "astro"
+    "astro": "astro",
+    "oauth:deploy": "wrangler deploy --config oauth-worker/wrangler.toml",
+    "oauth:secret": "wrangler secret put GITHUB_CLIENT_SECRET --config oauth-worker/wrangler.toml",
+    "oauth:logs": "wrangler tail --config oauth-worker/wrangler.toml"
   },
   "dependencies": {
     "@astrojs/sitemap": "^3.7.3",

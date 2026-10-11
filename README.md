@@ -114,9 +114,9 @@ Attach the domain in the Worker's **Settings** → **Domains & Routes**.
 
 ### 3. Enable the CMS login
 
-See [`oauth-worker/README.md`](oauth-worker/README.md) — create a GitHub OAuth
-App, deploy the Worker, then set `backend.base_url` in
-`public/admin/config.yml` to the deployed Worker URL.
+See [`oauth-worker/README.md`](oauth-worker/README.md) — create a GitHub App
+installed on this repo only, then deploy the login Worker with its
+credentials.
 
 ### 4. Turn on monitoring
 

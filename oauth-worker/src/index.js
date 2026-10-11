@@ -17,23 +17,33 @@
 const GITHUB_AUTHORIZE_URL = 'https://github.com/login/oauth/authorize';
 const GITHUB_TOKEN_URL = 'https://github.com/login/oauth/access_token';
 
+/** Turns a value into a JS literal that is safe to embed inside <script>. */
+function toScriptLiteral(value) {
+  // JSON is valid JS; escaping "<" stops a value from closing the script tag.
+  return JSON.stringify(value).replace(/</g, '\\u003c');
+}
+
 /** Renders the tiny HTML page that hands the result back to the CMS window. */
-function postMessagePage(payload) {
+function postMessagePage(payload, siteOrigin) {
   // Decap's handshake: the popup announces itself, the CMS window answers,
-  // and only then do we send the payload back — to that window's origin.
-  const body = JSON.stringify(payload);
+  // and only then do we send the payload back.
+  //
+  // The token goes ONLY to our own site's origin. Without that check, any
+  // website could open this popup itself and — if the visitor is already
+  // logged in to GitHub, which skips the consent screen — receive a token
+  // that can write to their repositories.
+  const message = `authorization:github:success:${JSON.stringify(payload)}`;
   return `<!doctype html>
 <html><body><script>
   (function () {
+    var siteOrigin = ${toScriptLiteral(siteOrigin)};
     function receiveMessage(e) {
-      window.opener.postMessage(
-        'authorization:github:success:${body.replace(/'/g, "\\'")}',
-        e.origin
-      );
+      if (e.origin !== siteOrigin) return;
+      window.opener.postMessage(${toScriptLiteral(message)}, siteOrigin);
       window.removeEventListener('message', receiveMessage, false);
     }
     window.addEventListener('message', receiveMessage, false);
-    window.opener.postMessage('authorizing:github', '*');
+    window.opener.postMessage('authorizing:github', siteOrigin);
   })();
 </script></body></html>`;
 }
@@ -41,6 +51,12 @@ function postMessagePage(payload) {
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
+
+    // Fail closed: without a configured site there is nowhere safe to send
+    // a token, so refuse to start a login at all.
+    if (!env.SITE_ORIGIN) {
+      return new Response('SITE_ORIGIN is not configured.', { status: 500 });
+    }
 
     if (url.pathname === '/auth') {
       // "state" is a random value we hand to GitHub and expect back unchanged.
@@ -51,8 +67,9 @@ export default {
       const authUrl = new URL(GITHUB_AUTHORIZE_URL);
       authUrl.searchParams.set('client_id', env.GITHUB_CLIENT_ID);
       authUrl.searchParams.set('redirect_uri', `${url.origin}/callback`);
-      // "repo" is required: the CMS commits files to the repository.
-      authUrl.searchParams.set('scope', 'repo,user');
+      // No "scope" here: this is a GitHub App, not an OAuth App. GitHub only
+      // lets its tokens reach the repositories the App is installed on
+      // (atelier only), with only the permissions set in the App's settings.
       authUrl.searchParams.set('state', state);
 
       return new Response(null, {
@@ -100,7 +117,7 @@ export default {
       }
 
       return new Response(
-        postMessagePage({ token: data.access_token, provider: 'github' }),
+        postMessagePage({ token: data.access_token, provider: 'github' }, env.SITE_ORIGIN),
         {
           headers: {
             'Content-Type': 'text/html; charset=utf-8',
