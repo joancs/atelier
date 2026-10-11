@@ -1,18 +1,31 @@
-// Cloudflare Workers config for the site itself.
+// Cloudflare Workers config for the site.
 //
-// The site is plain pre-built files, so this Worker has no code of its own:
-// Cloudflare just serves whatever `npm run build` put in dist/. Deploys happen
+// Most of the site is plain pre-built files: Cloudflare serves whatever
+// `npm run build` put in dist/ without running any code. The only code is
+// worker/index.js, which handles the CMS login at /oauth/*. Deploys happen
 // automatically through Workers Builds on every push to main.
-//
-// (The GitHub login helper is a separate Worker — see oauth-worker/.)
 {
   "$schema": "./node_modules/wrangler/config-schema.json",
   "name": "atelier",
+  "main": "./worker/index.js",
   "compatibility_date": "2026-09-20",
   "assets": {
     "directory": "./dist",
+    // Lets worker/index.js fall back to serving the static site.
+    "binding": "ASSETS",
     // Unknown URLs get dist/404.html (built from src/pages/404.astro) with a
     // real 404 status, instead of a bare error.
-    "not_found_handling": "404-page"
+    "not_found_handling": "404-page",
+    // Only these paths run worker/index.js; everything else is served
+    // straight from dist/.
+    "run_worker_first": ["/oauth/*"]
+  },
+  "vars": {
+    // The GitHub App's Client ID. Not a secret — fine in version control.
+    // Replace after creating the GitHub App (see worker/README.md).
+    "GITHUB_CLIENT_ID": "REPLACE-ME"
   }
+  // GITHUB_CLIENT_SECRET is deliberately NOT here: secrets never go in a
+  // file that lands in git. It is set in the Cloudflare dashboard instead
+  // (see worker/README.md).
 }

@@ -8,9 +8,10 @@ backend:
   name: github
   repo: joancs/atelier
   branch: main
-  # The small service in oauth-worker/ that performs the GitHub login
-  # handshake. Its SITE_ORIGIN setting must match this site's URL.
-  base_url: https://atelier-oauth.joancorreasilva.workers.dev
+  # The GitHub login handshake runs on this same site, in worker/index.js.
+  # Update base_url when the site moves to its own domain.
+  base_url: https://atelier.joancorreasilva.workers.dev
+  auth_endpoint: oauth/auth
 
 # Where uploaded images are committed in the repo (path from the repo root).
 media_folder: 'src/assets/artwork'

@@ -34,5 +34,10 @@ jobs:
       - name: Type-check and validate content
         run: npm run check
 
+      # The CMS login code in worker/ — including the check that login
+      # tokens are only ever handed to this site.
+      - name: Test login Worker
+        run: npm test
+
       - name: Build site
         run: npm run build

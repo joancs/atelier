@@ -13,7 +13,7 @@ keeps the layout from shifting around as the page loads.
 | --- | --- |
 | [Astro](https://astro.build) | Turns content files into static HTML; optimizes images |
 | [Decap CMS](https://decapcms.org) | Browser-based editor at `/admin` so artwork can be added without touching code |
-| Cloudflare Workers | Hosts the site (configured in `wrangler.jsonc`), rebuilding and deploying on every push to `main`; also runs the small OAuth helper that logs the editor into GitHub |
+| Cloudflare Workers | Hosts the site (configured in `wrangler.jsonc`), rebuilding and deploying on every push to `main`; also runs the small GitHub login step for the editor |
 | GitHub Actions | Verifies the site builds and type-checks on every pull request |
 
 ## Running it locally
@@ -29,6 +29,8 @@ npm run dev       # http://localhost:4321
 | `npm run check` | Type-check + validate content against the schema |
 | `npm run build` | Build the production site into `dist/` |
 | `npm run preview` | Serve the built site locally, to check it before deploying |
+| `npm test` | Test the CMS login code in `worker/` |
+| `npm run logs` | Stream live logs from the deployed Worker |
 
 ## Project layout
 
@@ -46,7 +48,8 @@ src/
 public/
 ├── admin/               the Decap CMS editor (served as-is)
 └── robots.txt
-oauth-worker/            the GitHub login helper (deployed separately)
+worker/                  the CMS login code — the only part that runs on a server
+wrangler.jsonc           Cloudflare config: what to serve, which paths run worker/
 ```
 
 ## Adding a new piece
@@ -103,20 +106,23 @@ builds enabled every other branch gets its own preview URL.
 
 ### 2. Set the real domain
 
-Two files contain the placeholder `https://example.com` and must be updated once
-a domain is chosen, or the sitemap and social preview links will point at the
-wrong place:
+These files contain the placeholder `https://example.com` and must be updated
+once a domain is chosen, or the sitemap and social preview links will point at
+the wrong place:
 
 - `astro.config.mjs` → `site`
 - `public/robots.txt` → the `Sitemap:` line
+
+Also update `base_url` in `public/admin/config.yml`, and add the new callback
+URL to the GitHub App (see [`worker/README.md`](worker/README.md)), or the
+editor login stops working.
 
 Attach the domain in the Worker's **Settings** → **Domains & Routes**.
 
 ### 3. Enable the CMS login
 
-See [`oauth-worker/README.md`](oauth-worker/README.md) — create a GitHub App
-installed on this repo only, then deploy the login Worker with its
-credentials.
+See [`worker/README.md`](worker/README.md) — create a GitHub App installed on
+this repo only, then give its credentials to the Worker.
 
 ### 4. Turn on monitoring
 

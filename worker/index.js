@@ -1,15 +1,20 @@
 /**
- * GitHub OAuth helper for Decap CMS, running on Cloudflare Workers.
+ * The site's Worker: serves the built site, plus the GitHub login handshake
+ * for the Decap CMS editor at /admin.
  *
- * Why this exists: Decap CMS runs entirely in the browser, but exchanging a
- * GitHub login for an access token requires sending a *client secret*. Anything
- * shipped to a browser is public, so that exchange must happen server-side.
- * This Worker is that server-side step — and nothing more.
+ * Almost every request never reaches this code: Cloudflare serves the files
+ * in dist/ directly. Only /oauth/* runs here (see run_worker_first in
+ * wrangler.jsonc).
+ *
+ * Why the login part exists: Decap CMS runs entirely in the browser, but
+ * exchanging a GitHub login for an access token requires sending a *client
+ * secret*. Anything shipped to a browser is public, so that exchange must
+ * happen server-side. This is that server-side step — and nothing more.
  *
  * The flow:
- *   1. CMS opens a popup to  /auth
+ *   1. CMS opens a popup to  /oauth/auth
  *   2. We redirect the popup to GitHub's consent screen
- *   3. GitHub redirects back to  /callback?code=...
+ *   3. GitHub redirects back to  /oauth/callback?code=...
  *   4. We trade that short-lived code + our secret for an access token
  *   5. We hand the token to the CMS window via postMessage, and close the popup
  */
@@ -28,10 +33,10 @@ function postMessagePage(payload, siteOrigin) {
   // Decap's handshake: the popup announces itself, the CMS window answers,
   // and only then do we send the payload back.
   //
-  // The token goes ONLY to our own site's origin. Without that check, any
+  // The token goes ONLY to this site's own origin. Without that check, any
   // website could open this popup itself and — if the visitor is already
   // logged in to GitHub, which skips the consent screen — receive a token
-  // that can write to their repositories.
+  // that can write to the repository.
   const message = `authorization:github:success:${JSON.stringify(payload)}`;
   return `<!doctype html>
 <html><body><script>
@@ -52,13 +57,7 @@ export default {
   async fetch(request, env) {
     const url = new URL(request.url);
 
-    // Fail closed: without a configured site there is nowhere safe to send
-    // a token, so refuse to start a login at all.
-    if (!env.SITE_ORIGIN) {
-      return new Response('SITE_ORIGIN is not configured.', { status: 500 });
-    }
-
-    if (url.pathname === '/auth') {
+    if (url.pathname === '/oauth/auth') {
       // "state" is a random value we hand to GitHub and expect back unchanged.
       // It proves the callback we receive was triggered by a login *we*
       // started, rather than forged by someone else (CSRF protection).
@@ -66,7 +65,7 @@ export default {
 
       const authUrl = new URL(GITHUB_AUTHORIZE_URL);
       authUrl.searchParams.set('client_id', env.GITHUB_CLIENT_ID);
-      authUrl.searchParams.set('redirect_uri', `${url.origin}/callback`);
+      authUrl.searchParams.set('redirect_uri', `${url.origin}/oauth/callback`);
       // No "scope" here: this is a GitHub App, not an OAuth App. GitHub only
       // lets its tokens reach the repositories the App is installed on
       // (atelier only), with only the permissions set in the App's settings.
@@ -78,12 +77,12 @@ export default {
           Location: authUrl.toString(),
           // HttpOnly so browser JS can't read it; SameSite=Lax so it still
           // survives the redirect back from GitHub.
-          'Set-Cookie': `oauth_state=${state}; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=600`,
+          'Set-Cookie': `oauth_state=${state}; HttpOnly; Secure; SameSite=Lax; Path=/oauth; Max-Age=600`,
         },
       });
     }
 
-    if (url.pathname === '/callback') {
+    if (url.pathname === '/oauth/callback') {
       const code = url.searchParams.get('code');
       const returnedState = url.searchParams.get('state');
 
@@ -99,7 +98,7 @@ export default {
         headers: {
           'Content-Type': 'application/json',
           Accept: 'application/json',
-          'User-Agent': 'atelier-oauth-worker',
+          'User-Agent': 'atelier-worker',
         },
         body: JSON.stringify({
           client_id: env.GITHUB_CLIENT_ID,
@@ -116,18 +115,22 @@ export default {
         });
       }
 
+      // The site and this login code share one origin, so the only window
+      // allowed to receive the token is one showing this very site.
       return new Response(
-        postMessagePage({ token: data.access_token, provider: 'github' }, env.SITE_ORIGIN),
+        postMessagePage({ token: data.access_token, provider: 'github' }, url.origin),
         {
           headers: {
             'Content-Type': 'text/html; charset=utf-8',
             // Clear the one-time state cookie.
-            'Set-Cookie': 'oauth_state=; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=0',
+            'Set-Cookie': 'oauth_state=; HttpOnly; Secure; SameSite=Lax; Path=/oauth; Max-Age=0',
           },
         },
       );
     }
 
-    return new Response('Not found', { status: 404 });
+    // Any other /oauth/* path: hand back to the static site, which serves
+    // the normal "page not found" page.
+    return env.ASSETS.fetch(request);
   },
 };
